@@ -1,0 +1,1 @@
+// A common script for all themes

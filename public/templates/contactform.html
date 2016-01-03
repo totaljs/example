@@ -1,0 +1,37 @@
+<!-- This is jComponent component's implementation -->
+<!-- /controllers/default.js:line 2 compresses this template and removes all comments -->
+
+<div data-component-scope="?" data-component-init="contactform_init">
+	<div class="m" data-component="textbox" data-component-path="name" data-placeholder="e.g. John Muller" data-component-value="''" data-required="true">Name</div>
+	<div class="m" data-component="textbox" data-component-path="email" data-component-value="'@'" data-required="true" data-component-type="email">Email</div>
+	<div class="m" data-component="textarea" data-component-path="body" data-component-value="''" data-height="100px" data-required="true">Message</div>
+	<br />
+	<div data-component="error" data-component-path="response"></div>
+	<div data-component="visible" data-component-path="response" data-if="value && value.success === true" class="green hidden">
+		<div><span class="fa fa-thumbs-up"></span> Thank you, the form has been sent successfully.</div>
+		<br />
+	</div>
+	<div data-component="click" data-component-path="submit">
+		<div data-component="validation" data-component-path="?">
+			<button class="button">Sign in</button>
+		</div>
+	</div>
+</div>
+
+<script>
+if (!window.contactform_init) {
+	window.contactform_init = function(scope) {
+		window[scope] = {};
+		window[scope].submit = function() {
+			if (BLOCKED(scope, 2000))
+				return;
+			RESET(scope + '.*');
+			AJAX('POST /api/contact/', window[scope], function(response) {
+				if (response.success)
+					DEFAULT(scope + '.*');
+				SET(scope + '.response', response);
+			});
+		};
+	};
+}
+</script>
