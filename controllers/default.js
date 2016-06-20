@@ -1,5 +1,5 @@
 exports.install = function() {
-	F.localize('All client-side templates (this is only description).', '/templates/*.html', true);
+	F.localize('/templates/*.html', ['compress']);
 
 	// Common
 	F.route('/');         // --> is routed into the /themes/CURRENT_THEME/views/index.html

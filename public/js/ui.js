@@ -267,6 +267,7 @@ COMPONENT('error', function() {
 // <div data-component="cookie" ...>
 COMPONENT('cookie', function() {
 	var self = this;
+	self.readonly();
 	self.make = function() {
 		var cookie = localStorage.getItem('cookie');
 		if (cookie) {
