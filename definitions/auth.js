@@ -20,21 +20,26 @@ F.onAuthorize = function(req, res, flags, callback) {
 		return callback(true, session);
 	}
 
-	var builder = new MongoBuilder();
-	builder.where('_id', ObjectID.parse(obj.id));
-	builder.findOne(DB('users'), function(err, user) {
+	var nosql = DB();
+
+	nosql.select('user', 'users').make(function(builder) {
+		builder.where('_id', ObjectID.parse(obj.id));
+		builder.first();
+	});
+
+	nosql.exec(function(err, response) {
 
 		if (err) {
 			F.error(err);
 			return callback(false);
 		}
 
-		if (!user)
+		if (!response.user)
 			return callback(false);
 
-		session = user;
+		session = response.user;
 		session.expire = new Date().add(EXPIRE).getTime();
-		ONLINE[user._id.toString()] = session;
+		ONLINE[response.user._id.toString()] = session;
 
 		callback(true, session);
 	});

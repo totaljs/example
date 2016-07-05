@@ -1,27 +1,42 @@
 NEWSCHEMA('UserLogin').make(function(schema) {
 
 	schema.define('password', 'String(20)', true);
-	schema.define('email', 'String(200)', true);
+	schema.define('email', 'Email', true);
+
+	schema.setValidate(function(name, value, path) {
+		switch (name) {
+			case 'password':
+				if (!value.length)
+					return false;
+				if (value.length < 6)
+					return 'error-password-short';
+				return true;
+		}
+	});
 
 	schema.addWorkflow('login', function(error, model, controller, callback) {
-		var builder = new MongoBuilder();
-		builder.where('email', model.email);
-		builder.where('password', model.password.sha1());
-		builder.fields('_id');
-		builder.findOne(DB('users'), function(err, user) {
 
-			if (err) {
-				error.push(err);
+		var nosql = DB(error);
+
+		nosql.select('user', 'users').make(function(builder) {
+			builder.where('email', model.email);
+			builder.where('password', model.password.sha1());
+			builder.fields('_id');
+			builder.first();
+		});
+
+		nosql.exec(function(err, response) {
+
+			if (err)
 				return callback();
-			}
 
-			if (!user) {
+			if (!response.user) {
 				error.push('error-user-badcredencial');
 				return callback();
 			}
 
 			// Create cookie with user ID
-			controller.cookie('user', F.encrypt({ id: user._id }), '12 days');
+			controller.cookie('user', F.encrypt({ id: response.user._id }), '12 days');
 			callback(SUCCESS(true));
 		});
 	});
@@ -30,9 +45,20 @@ NEWSCHEMA('UserLogin').make(function(schema) {
 // Schema definitions
 NEWSCHEMA('User').make(function(schema) {
 
-	schema.define('name', 'String(30)', true);
+	schema.define('name', 'Capitalize(30)', true);
 	schema.define('password', 'String(20)', true);
-	schema.define('email', 'String(200)', true);
+	schema.define('email', 'Email', true);
+
+	schema.setValidate(function(name, value, path) {
+		switch (name) {
+			case 'password':
+				if (!value.length)
+					return false;
+				if (value.length < 6)
+					return 'error-password-short';
+				return true;
+		}
+	});
 
 	schema.setQuery(function(error, options, callback) {
 		error.push('error-notimplemented');
@@ -51,24 +77,23 @@ NEWSCHEMA('User').make(function(schema) {
 
 	schema.setSave(function(error, model, controller, callback) {
 
-		var builder = new MongoBuilder();
+		var nosql = DB(error);
 		var id = new ObjectID();
 
 		// Encrypts the password via SHA1 (you can use SHA256 or SHA512 or MD5)
 		model.password = model.password.sha1();
 
-		// Bind user's data
-		builder.set(model);
-		builder.set('_id', id);
-		builder.set('created', new Date());
-		builder.set('ip', controller.ip);
+		nosql.insert('users').make(function(builder) {
+			builder.set(model);
+			builder.set('_id', id);
+			builder.set('created', new Date());
+			builder.set('ip', controller.ip);
+		});
 
-		builder.save(DB('users'), function(err) {
+		nosql.exec(function(err, repsonse) {
 
-			if (err) {
-				error.push(err);
+			if (err)
 				return callback();
-			}
 
 			// Create cookie with user ID
 			controller.cookie('user', F.encrypt({ id: id }), '12 days');
@@ -79,20 +104,16 @@ NEWSCHEMA('User').make(function(schema) {
 	});
 
 	schema.addWorkflow('check.email', function(error, model, user, callback) {
-		var builder = new MongoBuilder();
-		builder.where('email', model.email);
-		builder.exists(DB('users'), function(err, e) {
 
-			if (err) {
-				error.push(err);
-				return callback();
-			}
+		var nosql = DB(error);
 
-			if (e) {
+		nosql.exists('user', 'users').make(function(builder) {
+			builder.where('email', model.email);
+		});
+
+		nosql.exec(function(err, response) {
+			if (response.user)
 				error.push('error-user-exists');
-				return callback();
-			}
-
 			callback();
 		});
 	});

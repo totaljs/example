@@ -6,219 +6,340 @@
 COMPONENT('checkbox', function() {
 
 	var self = this;
-	var isRequired = self.element.attr('data-required') === 'true';
+	var required = self.attr('data-required') === 'true';
+	var input;
 
 	self.validate = function(value) {
 		var is = false;
-		var t = typeof(value);
-		if (t === 'undefined' || t === 'object')
+		var type = typeof(value);
+
+		if (input.prop('disabled'))
+			return true;
+
+		if (type === 'undefined' || type === 'object')
 			value = '';
 		else
 			value = value.toString();
-		is = isRequired ? value === 'true' || value === 'on' : true;
-		return is;
+
+		return value === 'true' || value === 'on';
 	};
 
+	if (!required)
+		self.noValid();
+
 	self.make = function() {
-		var element = self.element;
-		var html = '<label><input type="checkbox" data-component-bind="" /> <span' + (isRequired ? ' class="ui-checkbox-label-required"' : '') + '>' + element.html() + '</span></label>';
-		element.addClass('ui-checkbox');
-		element.html(html);
+		self.element.addClass('ui-checkbox');
+		self.html('<label><input type="checkbox" data-component-bind="" /><span{1}>{0}</span></label>'.format(self.html(), required ? ' class="ui-checkbox-label-required"' : ''));
+		input = self.find('input');
 	};
 });
 
-// Component: Textbox
+// Component: Textbox v2.0.0
 // <div data-component="textbox" ...>
 COMPONENT('textbox', function() {
 
 	var self = this;
-	var isRequired = self.attr('data-required') === 'true';
+	var required = self.attr('data-required') === 'true';
+	var input;
+	var container;
 
 	self.validate = function(value) {
 
-		var is = false;
-		var t = typeof(value);
-
-		if (self.find('input').prop('disabled'))
+		if (input.prop('disabled'))
 			return true;
 
-		if (t === 'undefined' || t === 'object')
+		var type = typeof(value);
+
+		if (type === 'undefined' || type === 'object')
 			value = '';
 		else
 			value = value.toString();
 
-		is = isRequired ? self.type === 'email' ? value.isEmail() : self.type === 'currency' ? value > 0 : value.length > 0 : true;
-		return is;
+		if (window.$calendar)
+			window.$calendar.hide();
+
+		if (self.type === 'email')
+			return value.isEmail();
+		if (self.type === 'currency')
+			return value > 0;
+		return value.length > 0;
 	};
+
+	if (!required)
+		self.noValid();
 
 	self.make = function() {
 
 		var attrs = [];
+		var builder = [];
+		var tmp;
 
-		function attr(name) {
-			var a = self.element.attr(name);
-			if (!a)
-				return;
-			attrs.push(name.substring(name.indexOf('-') + 1) + '="' + a + '"');
-		}
+		attrs.attr('type', self.type === 'password' ? self.type : 'text');
+		attrs.attr('placeholder', self.attr('data-placeholder'));
+		attrs.attr('maxlength', self.attr('data-maxlength'));
+		attrs.attr('data-component-keypress', self.attr('data-component-keypress'));
+		attrs.attr('data-component-keypress-delay', self.attr('data-component-keypress-delay'));
+		attrs.attr('data-component-bind', '');
 
-		attr('data-placeholder');
-		attr('data-maxlength');
+		tmp = self.attr('data-align');
+		if (tmp)
+			attrs.attr('class', 'ui-' + tmp);
+
+		if (self.attr('data-autofocus') === 'true')
+			attrs.attr('autofocus');
 
 		var content = self.html();
 		var icon = self.attr('data-icon');
-		var align = self.attr('data-align');
-		var delay = self.attr('data-component-keypress-delay');
-		var keypress = self.attr('data-component-keypress');
+		var icon2 = self.attr('data-control-icon');
+		var increment = self.attr('data-increment') === 'true';
 
-		var html = '<input type="' + (self.type === 'password' ? 'password' : 'text') + '" data-component-bind=""' + (attrs.length ? ' ' + attrs.join('') : '') + (align ? ' class="' + align + '"' : '') + (self.attr('data-autofocus') === 'true' ? ' autofocus="autofocus"' : '') + ' />';
+		if (!icon2 && self.type === 'date')
+			icon2 = 'fa-calendar';
+
+		builder.push('<input {0} />'.format(attrs.join(' ')));
+
+		if (icon2)
+			builder.push('<div><span class="fa {0}"></span></div>'.format(icon2));
+		else if (increment)
+			builder.push('<div><span class="fa fa-caret-up"></span><span class="fa fa-caret-down"></span></div>');
+
+		if (increment) {
+			self.element.on('click', '.fa-caret-up,.fa-caret-down', function(e) {
+				var el = $(this);
+				var inc = -1;
+				if (el.hasClass('fa-caret-up'))
+					inc = 1;
+				self.change(true);
+				self.inc(inc);
+			});
+		}
+
+		if (self.type === 'date') {
+			self.element.on('click', '.fa-calendar', function(e) {
+				e.preventDefault();
+				if (!window.$calendar)
+					return;
+				var el = $(this);
+				window.$calendar.toggle(el.parent().parent(), self.element.find('input').val(), function(date) {
+					self.set(date);
+				});
+			});
+		}
 
 		if (!content.length) {
 			self.element.addClass('ui-textbox ui-textbox-container');
-			self.element.append(html);
+			self.html(builder.join(''));
+			input = self.find('input');
+			container = self.find('.ui-textbox');
 			return;
 		}
 
-		self.element.empty();
+		var html = builder.join('');
+		builder = [];
+		builder.push('<div class="ui-textbox-label{0}">'.format(required ? ' ui-textbox-label-required' : ''));
+
+		if (icon)
+			builder.push('<span class="fa {0}"></span> '.format(icon));
+
+		builder.push(content);
+		builder.push(':</div><div class="ui-textbox">{0}</div>'.format(html));
+
+		self.html(builder.join(''));
 		self.element.addClass('ui-textbox-container');
-		self.element.append('<div class="ui-textbox-label' + (isRequired ? ' ui-textbox-label-required' : '') + '">' + (icon ? '<span class="fa ' + icon + '"></span> ' : '') + content + ':</div><div class="ui-textbox">' + html + '</div>');
+		input = self.find('input');
+		container = self.find('.ui-textbox');
 	};
 
-	self.state = function(type) {
-		self.find('.ui-textbox').toggleClass('ui-textbox-invalid', self.isInvalid());
+	self.state = function(type, who) {
+		if (!type)
+			return;
+		var invalid = self.isInvalid();
+		if (invalid === self.$oldstate)
+			return;
+		self.$oldstate = invalid;
+		container.toggleClass('ui-textbox-invalid', self.isInvalid());
 	};
 });
 
-// Component: Textarea
+// Component: Textarea v2.0.0
 // <div data-component="textarea" ...>
 COMPONENT('textarea', function() {
 
 	var self = this;
-	var isRequired = self.attr('data-required') === 'true';
+	var required = self.attr('data-required') === 'true';
+	var input;
+	var container;
 
-	this.validate = function(value) {
+	self.validate = function(value) {
+
 		var is = false;
-		var t = typeof(value);
+		var type = typeof(value);
 
-		if (t === 'undefined' || t === 'object')
+		if (input.prop('disabled'))
+			return true;
+
+		if (type === 'undefined' || type === 'object')
 			value = '';
 		else
 			value = value.toString();
 
-		is = isRequired ? self.type === 'number' ? value > 0 : value.length > 0 : true;
-		return is;
+		if (window.$calendar)
+			window.$calendar.hide();
+
+		return value.length > 0;
 	};
+
+	if (!required)
+		self.noValid();
 
 	self.make = function() {
 
 		var attrs = [];
+		var builder = [];
+		var tmp;
 
-		function attr(name) {
-			var a = self.attr(name);
-			if (!a)
-				return;
-			attrs.push(name.substring(name.indexOf('-') + 1) + '="' + a + '"');
-		}
+		attrs.attr('placeholder', self.attr('data-placeholder'));
+		attrs.attr('maxlength', self.attr('data-maxlength'));
+		attrs.attr('data-component-bind', '');
 
-		attr('data-placeholder');
-		attr('data-maxlength');
+		tmp = self.attr('data-height');
+		if (tmp)
+			attrs.attr('style', 'height:' + tmp);
+
+		if (self.attr('data-autofocus') === 'true')
+			attrs.attr('autofocus');
+
+		builder.push('<textarea {0}></textarea>'.format(attrs.join(' ')));
 
 		var element = self.element;
-		var height = element.attr('data-height');
-		var icon = element.attr('data-icon');
 		var content = element.html();
-		var html = '<textarea data-component-bind=""' + (attrs.length > 0 ? ' ' + attrs.join('') : '') + (height ? ' style="height:' + height + '"' : '') + (element.attr('data-autofocus') === 'true' ? ' autofocus="autofocus"' : '') + '></textarea>';
 
-		if (content.length === 0) {
-			element.addClass('ui-textarea');
-			element.append(html);
+		if (!content.length) {
+			self.element.addClass('ui-textarea ui-textarea-container');
+			self.html(builder.join(''));
+			input = self.find('textarea');
+			container = self.element;
 			return;
 		}
 
-		element.empty();
-		element.append('<div class="ui-textarea-label' + (isRequired ? ' ui-textarea-label-required' : '') + '">' + (icon ? '<span class="fa ' + icon + '"></span> ' : '') + content + ':</div>');
-		element.append('<div class="ui-textarea">' + html + '</div>');
+		var height = self.attr('data-height');
+		var icon = self.attr('data-icon');
+
+		var html = builder.join('');
+		builder = [];
+		builder.push('<div class="ui-textarea-label{0}">'.format(required ? ' ui-textarea-label-required' : ''));
+
+		if (icon)
+			builder.push('<span class="fa {0}"></span> '.format(icon));
+
+		builder.push(content);
+		builder.push(':</div><div class="ui-textarea">{0}</div>'.format(html));
+
+		self.html(builder.join(''));
+		self.element.addClass('ui-textarea-container');
+		input = self.find('textarea');
+		container = self.find('.ui-textarea');
 	};
 
 	self.state = function(type) {
-		self.element.find('.ui-textarea').toggleClass('ui-textarea-invalid', self.isInvalid());
+		if (!type)
+			return;
+		var invalid = self.isInvalid();
+		if (invalid === self.$oldstate)
+			return;
+		self.$oldstate = invalid;
+		container.toggleClass('ui-textarea-invalid', self.isInvalid());
 	};
 });
 
-// Component: Dropdown
+// Component: Dropdown v2.0.0
 // <div data-component="dropdown" ...>
 COMPONENT('dropdown', function() {
 
 	var self = this;
-	var isRequired = self.attr('data-required') === 'true';
+	var required = self.attr('data-required') === 'true';
+	var select;
+	var container;
 
 	self.validate = function(value) {
 
-		if (value === null || value === undefined || typeof(value) === 'object')
+		var type = typeof(value);
+
+		if (select.prop('disabled'))
+			return true;
+
+		if (type === 'undefined' || type === 'object')
 			value = '';
 		else
 			value = value.toString();
 
-		return isRequired ? self.type === 'number' ? value > 0 : value.length > 0 : true;
+		if (window.$calendar)
+			window.$calendar.hide();
+
+		if (self.type === 'currency' || self.type === 'number')
+			return value > 0;
+
+		return value.length > 0;
 	};
+
+	if (!required)
+		self.noValid();
 
 	self.render = function(arr) {
 
 		var builder = [];
 		var value = self.get();
-		var el = self.find('select').empty();
-		var kt = self.attr('data-source-text') || 'name';
-		var kv = self.attr('data-source-value') || 'id';
+		var template = '<option value="{0}"{1}>{2}</option>';
+		var propText = self.attr('data-source-text') || 'name';
+		var propValue = self.attr('data-source-value') || 'id';
+		var emptyText = self.attr('data-empty');
 
-		if (self.attr('data-empty') === 'true')
-			builder.push('<option value="">' + (self.attr('data-empty-text') || '') + '</option>');
+		if (emptyText !== undefined)
+			builder.push('<option value="">{0}</option>'.format(emptyText));
 
 		for (var i = 0, length = arr.length; i < length; i++) {
 			var item = arr[i];
-			if (typeof(item) === 'string')
-				builder.push('<option value="' + item + '"' + (value == item ? ' selected="selected"' : '') + '>' + item + '</option>');
+			if (item.length)
+				builder.push(template.format(item, value === item ? ' selected="selected"' : '', item));
 			else
-				builder.push('<option value="' + item[kv] + '"' + (value == item[kv] ? ' selected="selected"' : '') + '>' + item[kt] + '</option>');
+				builder.push(template.format(item[propValue], value === item[propValue] ? ' selected="selected"' : '', item[propText]));
 		}
 
-		var disabled = arr.length === 0;
-		el.parent().toggleClass('ui-disabled', disabled);
-		el.prop('disabled', disabled);
-		el.html(builder.join(''));
+		select.html(builder.join(''));
 	};
 
 	self.make = function() {
 
 		var options = [];
-		var element = self.element;
-		var arr = (element.attr('data-options') || '').split(';');
 
-		for (var i = 0, length = arr.length; i < length; i++) {
-			var item = arr[i].split('|');
-			options.push('<option value="' + (item[1] === undefined ? item[0] : item[1]) + '">' + item[0] + '</option>');
-		}
+		(self.attr('data-options') || '').split(';').forEach(function(item) {
+			item = item.split('|');
+			options.push('<option value="{0}">{1}</option>'.format(item[1] === undefined ? item[0] : item[1], item[0]));
+		});
 
 		self.element.addClass('ui-dropdown-container');
 
-		var content = element.html();
-		var icon = element.attr('data-icon');
-		var html = '<div class="ui-dropdown"><span class="fa fa-sort"></span><select data-component-bind="">' + options.join('') + '</select></div>';
+		var label = self.html();
+		var html = '<div class="ui-dropdown"><span class="fa fa-sort"></span><select data-component-bind="">{0}</select></div>'.format(options.join(''));
+		var builder = [];
 
-		if (content.length > 0) {
-			element.empty();
-			element.append('<div class="ui-dropdown-label' + (isRequired ? ' ui-dropdown-label-required' : '') + '">' + (icon ? '<span class="fa ' + icon + '"></span> ' : '') + content + ':</div>');
-			element.append('<div class="ui-dropdown-values">' + html + '</div>');
-		} else {
-			element.addClass('ui-dropdown-values');
-			element.append(html);
-		}
+		if (label.length) {
+			var icon = self.attr('data-icon');
+			builder.push('<div class="ui-dropdown-label{0}">{1}{2}:</div>'.format(required ? ' ui-dropdown-label-required' : '', icon ? '<span class="fa {0}"></span> '.format(icon) : '', label));
+			builder.push('<div class="ui-dropdown-values">{0}</div>'.format(html));
+			self.html(builder.join(''));
+		} else
+			self.html(html).addClass('ui-dropdown-values');
 
-		var datasource = element.attr('data-source');
-		if (!datasource)
+		select = self.find('select');
+		container = self.find('.ui-dropdown');
+
+		var ds = self.attr('data-source');
+		if (!ds)
 			return;
 
 		var prerender = function(path) {
-			var value = self.get(datasource);
+			var value = self.get(self.attr('data-source'));
 			if (NOTMODIFIED(self.id, value))
 				return;
 			if (!value)
@@ -226,40 +347,44 @@ COMPONENT('dropdown', function() {
 			self.render(value);
 		};
 
-		self.watch(datasource, prerender, true);
+		self.watch(ds, prerender, true);
 	};
 
-	self.state = function(type) {
-		self.find('.ui-dropdown').toggleClass('ui-dropdown-invalid', self.isInvalid());
+	self.state = function(type, who) {
+		if (!type)
+			return;
+		var invalid = self.isInvalid();
+		if (invalid === self.$oldstate)
+			return;
+		self.$oldstate = invalid;
+		container.toggleClass('ui-dropdown-invalid', self.isInvalid());
 	};
 });
 
-// Component: Error
+// Component: Error v2.0.0
 // <div data-component="error" ...>
 COMPONENT('error', function() {
 	var self = this;
-	var element;
 
 	self.readonly();
 
 	self.make = function() {
-		self.element.append('<ul class="ui-error hidden"></ul>');
-		element = self.element.find('ul');
+		self.element.addClass('ui-error hidden');
 	};
 
 	self.setter = function(value) {
 
-		if (!(value instanceof Array) || value.length === 0) {
-			element.addClass('hidden');
+		if (!(value instanceof Array) || !value.length) {
+			self.element.addClass('hidden');
 			return;
 		}
 
 		var builder = [];
 		for (var i = 0, length = value.length; i < length; i++)
-			builder.push('<li><span class="fa fa-times-circle"></span> ' + value[i].error + '</li>');
+			builder.push('<div><span class="fa fa-times-circle"></span>{0}</div>'.format(value[i].error));
 
-		element.html(builder.join(''));
-		element.removeClass('hidden');
+		self.html(builder.join(''));
+		self.element.removeClass('hidden');
 	};
 });
 
@@ -303,49 +428,50 @@ COMPONENT('visible', function() {
 	};
 });
 
-// Component: Validation
+// Component: Validation v2.0.0
 // <div data-component="validation" ...>
 COMPONENT('validation', function() {
 
 	var self = this;
 	var path;
-	var buttons;
+	var elements;
 
 	self.readonly();
 
 	self.make = function() {
-		buttons = self.element.find('button');
-		buttons.prop({ disabled: true });
-		path = self.path;
-		if (path.lastIndexOf('*') === -1)
-			path += '.*';
+		elements = self.find(self.attr('data-selector') || 'button');
+		elements.prop({ disabled: true });
 		self.evaluate = self.attr('data-if');
-		self.watch(self.path, function() {
-			var disabled = $.components.disable(path);
-			if (!disabled && self.evaluate)
-				disabled = !EVALUATE(self.path, self.evaluate);
-			buttons.prop({ disabled: disabled });
-		}, true);
+		path = self.path.replace(/\.\*$/, '');
+		self.watch(self.path, self.state, true);
 	};
 
 	self.state = function() {
-		var disabled = $.components.disable(path);
+		var disabled = jC.disabled(path);
 		if (!disabled && self.evaluate)
 			disabled = !EVALUATE(self.path, self.evaluate);
-		buttons.prop({ disabled: disabled });
+		elements.prop({ disabled: disabled });
 	};
 });
 
-// Component: Click
+// Component: Click v2.0.0
 // <div data-component="click" ...>
 COMPONENT('click', function() {
 	var self = this;
 
+	self.readonly();
+
+	self.click = function() {
+		var value = self.attr('data-value');
+		if (typeof(value) === 'string')
+			self.set(self.parser(value));
+		else
+			self.get(self.path)(self);
+	};
+
 	self.make = function() {
 
-		self.element.on('click', function() {
-			self.get(self.path)();
-		});
+		self.element.on('click', self.click);
 
 		var enter = self.attr('data-enter');
 		if (!enter)
@@ -355,12 +481,10 @@ COMPONENT('click', function() {
 			if (e.keyCode !== 13)
 				return;
 			setTimeout(function() {
-				if (self.element.get(0).disabled === true)
+				if (self.element.get(0).disabled)
 					return;
-				self.get(self.path)();
+				self.click();
 			}, 100);
 		});
 	};
-
-	self.readonly();
 });

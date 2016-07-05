@@ -7,8 +7,8 @@ label span { vertical-align: middle; }
 
 /* jComponent: Error */
 .ui-error { margin: 0 0 15px 0; padding: 0; list-style-type: none; border: 2px solid #BE3A48; border-left-width: 0; border-right-width: 0; padding: 10px 0; color: #BE3A48; }
-.ui-error li { display: block; }
-.ui-error li .fa { width: 14px; }
+.ui-error div { display: block; }
+.ui-error div .fa { width: 14px; }
 
 /* jComponent: Cookie */
 .ui-cookie { font-size: 11px; padding: 3px 20px 5px; border-bottom: 1px solid #F0F0F0; text-align: center; }

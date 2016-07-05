@@ -1,17 +1,21 @@
 NEWSCHEMA('Contact').make(function(schema) {
 
-	schema.define('id', 'String(10)');
-	schema.define('iduser', 'String(10)');
-	schema.define('name', 'String(30)');
-	schema.define('email', 'String(200)', true);
+	schema.define('name', 'Capitalize(30)', true);
+	schema.define('email', 'Email', true);
 	schema.define('body', String, true);
 
 	schema.setSave(function(error, model, controller, callback) {
-		var builder = new MongoBuilder();
-		builder.set(model);
-		builder.set('created', new Date());
-		builder.set('ip', controller.ip);
-		builder.insert(DB('contact'), F.error());
+
+		var nosql = DB();
+
+		nosql.insert('contact').make(function(builder) {
+			builder.set(model);
+			builder.set('iduser', controller.user ? controller.user._id : null);
+			builder.set('created', new Date());
+			builder.set('ip', controller.ip);
+		});
+
+		nosql.exec(F.error());
 		callback(SUCCESS(true));
 	});
 
