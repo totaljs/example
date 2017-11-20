@@ -10,3 +10,7 @@
 ## Do you need some advanced functionality?
 
 Contact me on <petersirka@gmail.com> or [create new issue](https://github.com/totaljs/example/issues).
+
+## Run Docker 
+
+`docker-compose up -d`
