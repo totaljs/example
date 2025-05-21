@@ -1,0 +1,8 @@
+name         : Todo
+database     : postgresql://user:password@localhost/todo
+
+// API endpoint. The framework automatically replaces all "?" characters with the following endpoint:
+$api         : /api/
+
+// API token
+token        : 6mHceMs4iKr8

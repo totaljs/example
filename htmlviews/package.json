@@ -1,0 +1,13 @@
+{
+  "name": "totalapi",
+  "version": "1",
+  "main": "index.js",
+  "dependencies": {
+    "total5": "latest"
+  },
+  "scripts": {
+    "start": "node index.js 8000"
+  },
+  "author": "Total.js",
+  "license": "MIT"
+}

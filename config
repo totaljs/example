@@ -1,9 +1,0 @@
-name                 : Example
-version              : 1.0.0
-author               : Your Company Name
-
-// A default theme
-default-theme        : default
-
-// Please do not change the data
-database             : mongodb://totalexample:total.js@ds035985.mongolab.com:35985/totalexample
