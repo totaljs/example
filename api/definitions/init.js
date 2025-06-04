@@ -4,7 +4,7 @@ require('querybuilderpg').init('default', CONF.database, ERROR('PostgreSQL'));
 
 ON('ready', async function() {
 
-	// Check if the database exists.
+	// Check if the DB structure exists.
 	let tables = await DATA.query("SELECT FROM pg_tables WHERE schemaname='public' AND tablename='tbl_todo' LIMIT 1").promise();
 	if (tables.length)
 		return;
